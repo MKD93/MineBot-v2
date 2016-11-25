@@ -1,137 +1,75 @@
 #include "Process.hpp"
 
-#include <windows.h>
-#include <psapi.h>
-
-Process::Process() : Instances(nullptr), Size(0)
-{
-}
-
-Process::~Process()
-{
-	if(Instances != nullptr)
-	{
-		free(reinterpret_cast<void*>(Instances));
-
-		Instances = nullptr;
-		Size = 0;
-	}
-}
-
-Process::Process(const Process &copy) : Instances(nullptr), Size(copy.Size)
-{
-	Instances = reinterpret_cast<Instance*>(calloc(Size, sizeof(Instance)));
-
-	if(Instances == nullptr)
-		Size = 0;
-
-	else
-		memcpy(reinterpret_cast<void*>(Instances), reinterpret_cast<const void*>(copy.Instances), Size * sizeof(Instance));
-}
-
-Process& Process::operator=(const Process &copy)
-{
-	Instances = reinterpret_cast<Instance*>(calloc(copy.Size, sizeof(Instance)));
-
-	if(Instances == nullptr)
-		Size = 0;
-
-	else
-	{
-		Size = copy.Size;
-		memcpy(reinterpret_cast<void*>(Instances), reinterpret_cast<const void*>(copy.Instances), Size * sizeof(Instance));
-	}
-
-	return (*this);
-}
+Process::Process() : Instances() {}
+Process::~Process() { Instances.clear(); }
+Process::Process(const Process &copy) : Instances(copy.Instances) {}
+Process& Process::operator=(const Process &copy) { Instances = copy.Instances; return (*this); }
 
 bool Process::loadInstances()
 {
+	Instances.clear();
+
+	TCHAR targetName[MAX_PATH] = "Minesweeper.exe";
+	TCHAR processName[MAX_PATH];
 	DWORD processList[1024];
 	DWORD processCount;
+	HANDLE processHandle;
+	HMODULE moduleHandle;
+	DWORD moduleHandleSize;
 
 	if(!EnumProcesses(processList, sizeof(DWORD) << 10, &processCount))
 		return false;
 
-	processCount >>= 2;
-
-	TCHAR targetName[MAX_PATH] = "Minesweeper.exe";
-	TCHAR processName[MAX_PATH];
-	HANDLE processHandle;
-	HMODULE moduleHandle;
-	DWORD moduleHandleSize;
-	uint32_t offset = 0;
-
-	for(uint8_t loop = 0; loop < 2; ++loop)
+	for(DWORD index = 0; index < (processCount >> 2); ++index)
 	{
-		for(DWORD index = 0; index < processCount; ++index)
+		processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processList[index]);
+
+		if(processHandle > 0)
 		{
-			processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processList[index]);
-
-			if(processHandle > 0)
+			if(EnumProcessModules(processHandle, &moduleHandle, sizeof(moduleHandle), &moduleHandleSize))
 			{
-				if(EnumProcessModules(processHandle, &moduleHandle, sizeof(moduleHandle), &moduleHandleSize))
-				{
-					GetModuleBaseName(processHandle, moduleHandle, processName, MAX_PATH);
+				GetModuleBaseName(processHandle, moduleHandle, &(processName[0]), MAX_PATH);
 
-					if(strcmp(processName, targetName) == 0)
-					{
-						if(loop == 0)
-							++Size;
-
-						else
-							Instances[offset++] = Instance(processList[index]);
-					}
-				}
-
-				CloseHandle(processHandle);
+				if(strcmp(targetName, processName) == 0)
+					Instances.push_back(Instance(processList[index]));
 			}
-		}
 
-		if(loop == 0)
-		{
-			Instances = reinterpret_cast<Instance*>(calloc(Size, sizeof(Instance)));
-
-			if(Instances == nullptr)
-			{
-				Size = 0;
-				return false;
-			}
+			CloseHandle(processHandle);
 		}
 	}
 
-	return (Size != 0);
+	return (!Instances.empty());
 }
 
 bool Process::updateInstances()
 {
-	bool result = true;
+	bool result = false;
 
-	for(size_t index = 0; index < Size; ++index)
-		if(!Instances[index].updateGrid())
-			result = false;
+	for(size_t index = 0; index < Instances.size(); ++index)
+		if(Instances[index].updateGrid())
+			result = true;
 
-	return result;
+	return (result && (!Instances.empty()));
 }
 
 bool Process::solveInstances()
 {
-	bool result = true;
+	bool result = false;
 
-	for(size_t index = 0; index < Size; ++index)
-		if(!Instances[index].solveGrid())
-			result = false;
+	for(size_t index = 0; index < Instances.size(); ++index)
+		if(Instances[index].solveGrid())
+			result = true;
 
-	return result;
+	return (result && (!Instances.empty()));
 }
 
 bool Process::cheatInstances()
 {
-	bool result = true;
+	bool result = false;
 
-	for(size_t index = 0; index < Size; ++index)
-		if(!Instances[index].cheatGrid())
-			result = false;
+	for(size_t index = 0; index < Instances.size(); ++index)
+		if(Instances[index].cheatGrid())
+			result = true;
 
-	return result;
+	return (result && (!Instances.empty()));
 }

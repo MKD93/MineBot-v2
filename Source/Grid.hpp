@@ -2,11 +2,12 @@
 #define Grid_H
 
 #include <cstdint>
+#include <vector>
 
 class Grid
 {
 	public:
-		int8_t Cheat[32][32], Known[32][32];
+		std::vector<std::vector<uint8_t> > Cheat, Known;
 		uint32_t Width, Height;
 
 		Grid();
@@ -14,15 +15,9 @@ class Grid
 		Grid(const Grid&);
 		Grid& operator=(const Grid&);
 
-		bool isInside(const int8_t, const int8_t) const;
-		int8_t getKnown(const int8_t, const int8_t) const;
-		void setKnown(const int8_t, const int8_t, const int8_t);
-		int8_t getNeighbors(const int8_t, const int8_t, const int8_t) const;
-		bool isNeighbor(const int8_t, const int8_t, const int8_t, const int8_t) const;
-
-		bool solveSingle(uint32_t&, uint32_t&);
-		bool solveDouble(uint32_t&, uint32_t&);
-		void getBestMove(uint32_t&, uint32_t&);
+		bool isInside(const int32_t, const int32_t) const;
+		uint32_t getNeighbors(const int32_t, const int32_t, const uint8_t) const;
+		void getBestMove(uint32_t&, uint32_t&) const;
 };
 
 #endif

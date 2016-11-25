@@ -2,10 +2,15 @@
 #define Instance_H
 
 #include "Grid.hpp"
-#include <cstdint>
+
+#include <windows.h>
+#include <psapi.h>
 
 class Instance
 {
+		static HWND IdHandle;
+		static BOOL CALLBACK EnumWindowsProc(HWND, LPARAM);
+
 	public:
 		Grid Data;
 		uint32_t Id;

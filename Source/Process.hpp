@@ -6,8 +6,7 @@
 class Process
 {
 	public:
-		Instance* Instances;
-		uint32_t Size;
+		std::vector<Instance> Instances;
 
 		Process();
 		~Process();

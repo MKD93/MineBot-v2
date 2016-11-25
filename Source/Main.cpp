@@ -9,14 +9,20 @@ int main(int argc, char **argv)
 	Process instances;
 
 	if(!instances.loadInstances())
-		return 1;
+		return -1;
 
 	while(instances.updateInstances())
 	{
-		if(!instances.solveInstances())
-			return 2;
+		//if(!instances.solveInstances())
+			//return -2;
 
-		Sleep(1000);
+		if(!instances.cheatInstances())
+			return -2;
+
+		else if(!instances.loadInstances())
+			return -3;
+
+		Sleep(500);
 	}
 
 	return 0;
