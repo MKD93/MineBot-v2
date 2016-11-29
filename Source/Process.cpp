@@ -1,3 +1,11 @@
+/**
+	File: "Process.cpp"
+
+	Copyright (c) 2016 Michael K. Duncan (fruitless75@gmail.com)
+	Distributed under the MIT License (MIT) (See accompanying file LICENSE
+	or copy at http://opensource.org/licenses/MIT)
+**/
+
 #include "Process.hpp"
 
 Process::Process() : Instances() {}
@@ -5,17 +13,19 @@ Process::~Process() { Instances.clear(); }
 Process::Process(const Process &copy) : Instances(copy.Instances) {}
 Process& Process::operator=(const Process &copy) { Instances = copy.Instances; return (*this); }
 
+/*
+	Searches through all active processes for instances of Minesweeper, and then
+	stores relevant process information for each active instance so that the game
+	state can be easily read, and so that input commands can be issued properly.
+*/
 bool Process::loadInstances()
 {
 	Instances.clear();
 
-	TCHAR targetName[MAX_PATH] = "Minesweeper.exe";
-	TCHAR processName[MAX_PATH];
-	DWORD processList[1024];
-	DWORD processCount;
+	TCHAR targetName[MAX_PATH] = "Minesweeper.exe", processName[MAX_PATH];
+	DWORD processList[1024], processCount, moduleHandleSize;
 	HANDLE processHandle;
 	HMODULE moduleHandle;
-	DWORD moduleHandleSize;
 
 	if(!EnumProcesses(processList, sizeof(DWORD) << 10, &processCount))
 		return false;
@@ -41,6 +51,10 @@ bool Process::loadInstances()
 	return (!Instances.empty());
 }
 
+/*
+	Updates the game state for each active instance of Minesweeper by reading
+	data directly from active process memory.
+*/
 bool Process::updateInstances()
 {
 	bool result = false;
@@ -52,6 +66,10 @@ bool Process::updateInstances()
 	return (result && (!Instances.empty()));
 }
 
+/*
+	Solves the game for each active instance of Minesweeper depending on the
+	current values for each game state.
+*/
 bool Process::solveInstances()
 {
 	bool result = false;
@@ -63,6 +81,9 @@ bool Process::solveInstances()
 	return (result && (!Instances.empty()));
 }
 
+/*
+	"Cheats" on the game for each active instance of Minesweeper.
+*/
 bool Process::cheatInstances()
 {
 	bool result = false;

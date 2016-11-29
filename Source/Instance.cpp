@@ -1,3 +1,11 @@
+/**
+	File: "Instance.cpp"
+
+	Copyright (c) 2016 Michael K. Duncan (fruitless75@gmail.com)
+	Distributed under the MIT License (MIT) (See accompanying file LICENSE
+	or copy at http://opensource.org/licenses/MIT)
+**/
+
 #include "Instance.hpp"
 
 HWND Instance::IdHandle = nullptr;
@@ -22,6 +30,10 @@ Instance::Instance(const uint32_t id) : Data(), Id(id) {}
 Instance::Instance(const Instance &copy) : Data(copy.Data), Id(copy.Id) {}
 Instance& Instance::operator=(const Instance &copy) { Data = copy.Data; Id = copy.Id; return (*this); }
 
+/*
+	Updates the game state for a single instance of Minesweeper by reading directly
+	from the memory of an active process.
+*/
 bool Instance::updateGrid()
 {
 	Data = Grid();
@@ -79,6 +91,11 @@ bool Instance::updateGrid()
 	return false;
 }
 
+/*
+	Solves an active instance of Minesweeper, depending on the current values
+	of the game state. Moves are simulated by sending messages that indicate
+	left mouse clicks are specific (x, y) locations.
+*/
 bool Instance::solveGrid()
 {
 	EnumWindows(EnumWindowsProc, Id);
@@ -98,6 +115,10 @@ bool Instance::solveGrid()
 	return true;
 }
 
+/*
+	"Cheats" on an active instance of Minesweeper. Moves are simulated by sending
+	messages that indicate left mouse clicks are specific (x, y) locations.
+*/
 bool Instance::cheatGrid()
 {
 	EnumWindows(EnumWindowsProc, Id);
