@@ -19,16 +19,22 @@
 class Grid
 {
 	public:
-		std::vector<std::vector<uint8_t> > Cheat, Known;
+		std::vector<std::vector<uint8_t>> Cheat, Known, Solve;
 		uint32_t Width, Height;
 
 		Grid();
 		~Grid();
 		Grid(const Grid&);
 		Grid& operator=(const Grid&);
-		
+
+		//Determines if a coordinate is within the grid.
+		bool isWithinGrid(const int8_t, const int8_t) const;
+
+		//Calculates a random move that is always on an unknown tile.
+		void getRandomMove(uint32_t&, uint32_t&) const;
+
 		//Calculates the best possible move, given the current game state.
-		void getBestMove(uint32_t&, uint32_t&) const;
+		void getBestMove(uint32_t&, uint32_t&);
 };
 
 #endif
