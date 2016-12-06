@@ -30,6 +30,24 @@ class Grid
 		//Determines if a coordinate is within the grid.
 		bool isWithinGrid(const int8_t, const int8_t) const;
 
+		//Determines if two tiles are neighboring.
+		bool isNeighboring(const int8_t, const int8_t, const int8_t, const int8_t) const;
+
+		//Counts the number of neighboring tiles with a specific value.
+		uint8_t countNeighbors(const int8_t, const int8_t, const uint8_t) const;
+
+		//Returns a tile value from the "Solve" grid.
+		uint8_t getKnown(const int8_t, const int8_t) const;
+
+		//Sets a tile value on the "Solve" grid.
+		void setKnown(const int8_t, const int8_t, const uint8_t);
+
+		//Solves one layer of neighbors analytically.
+		bool solveSingles();
+
+		//Solves two layer of neighbors analytically.
+		bool solveDoubles();
+
 		//Calculates a random move that is always on an unknown tile.
 		void getRandomMove(uint32_t&, uint32_t&) const;
 

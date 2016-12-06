@@ -25,10 +25,11 @@ static uint8_t getRandom(const uint8_t min, const uint8_t max)
 	The "Known" matrix stores the observed values found while simulating gameplay.
 
 	Values: 0 is empty tile; 1 though 8 are the numeric values on a tile;
-		9 is unknown tile value; 10 is tile without mine; 11 is tile with mine.
+		9 is unknown tile value; 10 is flagged tile; 11 is question tile;
+		12 is internal flag; 13 is out-of-bounds.
 */
 
-Grid::Grid() : Cheat(32, std::vector<uint8_t>(32, 0)), Known(32, std::vector<uint8_t>(32, 9)), Solve(32, std::vector<uint8_t>(32, 'o')), Width(0), Height(0) {}
+Grid::Grid() : Cheat(32, std::vector<uint8_t>(32, 0)), Known(32, std::vector<uint8_t>(32, 9)), Solve(), Width(0), Height(0) {}
 Grid::~Grid() { Cheat.clear(); Known.clear(); Solve.clear(); }
 Grid::Grid(const Grid &copy) : Cheat(copy.Cheat), Known(copy.Known), Solve(copy.Solve), Width(copy.Width), Height(copy.Height) {}
 Grid& Grid::operator=(const Grid &copy) { Cheat = copy.Cheat; Known = copy.Known; Solve = copy.Solve; Width = copy.Width; Height = copy.Height; return (*this); }
@@ -42,6 +43,152 @@ bool Grid::isWithinGrid(const int8_t x, const int8_t y) const
 }
 
 /*
+	Determines if two tiles are neighboring.
+*/
+bool Grid::isNeighboring(const int8_t x0, const int8_t y0, const int8_t x1, const int8_t y1) const
+{
+	return std::max(std::abs(x0 - x1), std::abs(y0 - y1)) <= 1;
+}
+
+/*
+	Counts the number of neighboring tiles with a specific value.
+*/
+uint8_t Grid::countNeighbors(const int8_t x, const int8_t y, const uint8_t value) const
+{
+	uint8_t result = 0;
+
+	for(int8_t j = -1; j <= 1; ++j)
+		for(int8_t i = -1; i <= 1; ++i)
+			if(getKnown(x + i, y + j) == value)
+				++result;
+
+	return result;
+}
+
+/*
+	Returns a tile value from the "Solve" grid.
+*/
+uint8_t Grid::getKnown(const int8_t x, const int8_t y) const
+{
+	return (isWithinGrid(x, y) ? Solve[x][y] : 13);
+}
+
+/*
+	Sets a tile value on the "Solve" grid.
+*/
+void Grid::setKnown(const int8_t x, const int8_t y, const uint8_t value)
+{
+	if(isWithinGrid(x, y))
+		Solve[x][y] = value;
+}
+
+/*
+	Solves one layer of neighbors analytically.
+*/
+bool Grid::solveSingles()
+{
+	bool changed = false;
+	uint8_t tile = 9, flagged = 0, unopened = 0;
+
+	for(int8_t y = 0; y < Height; ++y)
+		for(int8_t x = 0; x < Width; ++x)
+		{
+			tile = getKnown(x, y);
+
+			if((tile < 1) || (tile > 8))
+				continue;
+
+			flagged = countNeighbors(x, y, 10);
+			unopened = countNeighbors(x, y, 9);
+
+			if((tile == flagged) && (unopened >= 1))
+			{
+				for(int8_t j = -1; j <= 1; ++j)
+					for(int8_t i = -1; i <= 1; ++i)
+						if(getKnown(x + i, y + j) == 9)
+							setKnown(x + i, y + j, 12);
+
+				changed = true;
+			}
+
+			else if((tile == (flagged + unopened)) && (unopened >= 1))
+			{
+				for(int8_t j = -1; j <= 1; ++j)
+					for(int8_t i = -1; i <= 1; ++i)
+						if(getKnown(x + i, y + j) == 9)
+							setKnown(x + i, y + j, 10);
+
+				changed = true;
+			}
+		}
+
+	return changed;
+}
+
+/*
+	Solves two layer of neighbors analytically.
+*/
+bool Grid::solveDoubles()
+{
+	bool changed = false, jump = false;
+	uint8_t tile = 9, neighborTile = 9;
+
+	for(int8_t y = 0; y < Height; ++y)
+		for(int8_t x = 0; x < Width; ++x)
+		{
+			tile = getKnown(x, y);
+
+			if((tile < 1) || (tile > 8))
+				continue;
+
+			tile -= countNeighbors(x, y, 10);
+
+			for(int8_t j = -1; j <= 1; ++j)
+			{
+				jump = false;
+
+				for(int8_t i = -1; i <= 1; ++i)
+				{
+					neighborTile = getKnown(x + i, y + j);
+
+					if(((i == 0) && (j == 0)) || (neighborTile < 1) || (neighborTile > 8))
+						continue;
+
+					neighborTile -= countNeighbors(x + i, y + j, 10);
+
+					for(int8_t v = -1; v <= 1; ++v)
+						for(int8_t u = -1; u <= 1; ++u)
+							if((getKnown(x + u, y + v) == 9) && !isNeighboring(x + u, y + v, x + i, y + j))
+								jump = true;
+
+					if(jump)
+						break;
+
+					else if(tile == neighborTile)
+						for(int8_t v = -1; v <= 1; ++v)
+							for(int8_t u = -1; u <= 1; ++u)
+								if((getKnown(x + i + u, y + j + v) == 9) && !isNeighboring(x + i + u, y + j + v, x, y))
+								{
+									setKnown(x + i + u, y + j + v, 12);
+									changed = true;
+								}
+
+					else if((neighborTile - tile) == (countNeighbors(x + i, y + j, 9) - countNeighbors(x, y, 9)))
+						for(int8_t v = -1; v <= 1; ++v)
+							for(int8_t u = -1; u <= 1; ++u)
+								if((getKnown(x + i + u, y + j + v) == 9) && !isNeighboring(x + i + u, y + j + v, x, y))
+								{
+									setKnown(x + i + u, y + j + v, 10);
+									changed = true;
+								}
+				}
+			}
+		}
+
+	return changed;
+}
+
+/*
 	Calculates a random move that is always on an unknown tile.
 */
 void Grid::getRandomMove(uint32_t &x, uint32_t &y) const
@@ -51,91 +198,46 @@ void Grid::getRandomMove(uint32_t &x, uint32_t &y) const
 
 	for(uint8_t y = 0; y < Height; ++y)
 		for(uint8_t x = 0; x < Width; ++x)
-			if(Known[x][y] == 9)
+			if((Known[x][y] == 9) && (Solve[x][y] != 10))
 				moves.push_back(std::pair<uint8_t, uint8_t>(x, y));
 
-	index = getRandom(0, moves.size() - 1);
-	x = std::get<0>(moves[index]);
-	y = std::get<1>(moves[index]);
+	if(!moves.empty())
+	{
+		index = getRandom(0, moves.size() - 1);
+		x = std::get<0>(moves[index]);
+		y = std::get<1>(moves[index]);
+	}
 }
 
 /*
 	Calculates the best possible move, given the current game state.
 	If there is no known best possible move, then a move is selected randomly.
-
-	**Note: current implementation is not completed and is based off of
-		original MineBot solver
 */
-void Grid::getBestMove(uint32_t &x, uint32_t &y)
+void Grid::getBestMove(uint32_t &x0, uint32_t &y0)
 {
-	std::vector<std::pair<uint8_t, uint8_t>> moves;
-	uint8_t count = 0;
 	bool changed = false;
 
-	for(uint8_t y = 0; y < Height; ++y)
-		for(uint8_t x = 0; x < Width; ++x)
-		{
-			if(Known[x][y] == 0)
-				Solve[x][y] = ' ';
+	if(Solve.empty())
+		Solve = Known;
 
-			else if((Known[x][y] >= 1) && (Known[x][y] <= 8))
-				Solve[x][y] = Known[x][y] + 48;
+	while(solveSingles() || solveDoubles())
+		changed = true;
 
-			else
-				Solve[x][y] = 'o';
-		}
-
-	for(int8_t y = 0; y < Height; ++y)
+	if(changed)
 	{
-		for(int8_t x = 0; x < Width; ++x)
-		{
-			if(Solve[x][y] == '0')
-				for(int8_t v = -1; v <= 1; ++v)
-					for(int8_t u = -1; u <= 1; ++u)
-						if(isWithinGrid(x + u, y + v) && (Solve[x + u][y + v] == 'o'))
-							moves.push_back(std::pair<uint8_t, uint8_t>(x + v, y + v));
+		for(uint8_t y = 0; y < Height; ++y)
+			for(uint8_t x = 0; x < Width; ++x)
+				if(Solve[x][y] == 12)
+				{
+					x0 = x;
+					y0 = y;
 
-			for(int8_t v = -1; v <= 1; ++v)
-				for(int8_t u = -1; u <= 1; ++u)
-					if(isWithinGrid(x + u, y + v) && (Solve[x + u][y + v] == 'o'))
-						++count;
+					return;
+				}
 
-			if(count == (Solve[x][y] - 48))
-			{
-				for(int8_t v = -1; v <= 1; ++v)
-					for(int8_t u = -1; u <= 1; ++u)
-						if(isWithinGrid(x + u, y + v) && (Solve[x + u][y + v] == 'o'))
-						{
-							Solve[x + u][y + v] = 'x';
-							changed = true;
-
-							for(int8_t j = -1; j <= 1; ++j)
-								for(int8_t i = -1; i <= 1; ++i)
-									if(isWithinGrid(x + u + i, y + v + j) && (Solve[x + u + i][y + v + j] >= '1') && (Solve[x + u + i][y + v + j] <= '9'))
-										--Solve[x + u + i][y + v + j];
-						}
-
-                if(changed)
-                {
-                    x = -1;
-                    y = 0;
-
-                    break;
-                }
-			}
-
-			count = 0;
-			changed = false;
-		}
+		changed = false;
 	}
 
-	if(!moves.empty())
-	{
-		count = getRandom(0, moves.size() - 1);
-		x = std::get<0>(moves[count]);
-		y = std::get<1>(moves[count]);
-	}
-
-	else
-		getRandomMove(x, y);
+	if(!changed)
+		getRandomMove(x0, y0);
 }

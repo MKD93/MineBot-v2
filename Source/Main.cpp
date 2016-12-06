@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 		else if(!instances.loadInstances())
 			return -3;
 
-		Sleep(333);
+		Sleep(69);
 	}
 
 	return 0;

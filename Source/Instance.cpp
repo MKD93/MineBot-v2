@@ -111,6 +111,9 @@ bool Instance::solveGrid()
 	SendMessage(IdHandle, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM((x << 4) + 20, (y << 4) + 70));
 	SendMessage(IdHandle, WM_LBUTTONUP, MK_LBUTTON, MAKELPARAM((x << 4) + 20, (y << 4) + 70));
 
+	SendMessage(IdHandle, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM((x << 4) + 20, (y << 4) + 70));
+	SendMessage(IdHandle, WM_LBUTTONUP, MK_LBUTTON, MAKELPARAM((x << 4) + 20, (y << 4) + 70));
+
 	IdHandle = nullptr;
 	return true;
 }
