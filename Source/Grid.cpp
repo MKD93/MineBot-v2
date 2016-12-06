@@ -225,15 +225,14 @@ bool Grid::computeCosts(uint32_t &x0, uint32_t &y0) const
 									if((u != 0) && (v != 0) && (getKnown(x + i + u, y + j + v) >= 1) && (getKnown(x + i + u, y + j + v) <= 8))
 										costs[costs.size() - 1] -= getKnown(x + i + u, y + j + v);
 						}
-			}
 
-	for(uint32_t i = 0; i < costs.size(); ++i)
-		if(costs[i] < minCost)
-		{
-			x0 = std::get<0>(moves[i]);
-			y0 = std::get<1>(moves[i]);
-			minCost = costs[i];
-		}
+				if(costs.back() < minCost)
+				{
+					x0 = std::get<0>(moves.back());
+					y0 = std::get<1>(moves.back());
+					minCost = costs.back();
+				}
+			}
 
 	return (minCost != 127);
 }
@@ -258,7 +257,7 @@ void Grid::getRandomMove(uint32_t &x0, uint32_t &y0) const
 					for(int8_t i = -1; i <= 1; ++i)
 						if((getKnown(x + i, y + j) >= 1) && (getKnown(x + i, y + j) <= 8))
 						{
-							if(costs[costs.size() - 1] == 127)
+							if(costs.back() == 127)
 								costs[costs.size() - 1] = 0;
 
 							costs[costs.size() - 1] += getKnown(x + i, y + j);
@@ -268,15 +267,14 @@ void Grid::getRandomMove(uint32_t &x0, uint32_t &y0) const
 									if((u != 0) && (v != 0) && (getKnown(x + i + u, y + j + v) >= 1) && (getKnown(x + i + u, y + j + v) <= 8))
 										costs[costs.size() - 1] -= getKnown(x + i + u, y + j + v);
 						}
-			}
 
-	for(uint32_t i = 0; i < costs.size(); ++i)
-		if(costs[i] < minCost)
-		{
-			x0 = std::get<0>(moves[i]);
-			y0 = std::get<1>(moves[i]);
-			minCost = costs[i];
-		}
+				if(costs.back() < minCost)
+				{
+					x0 = std::get<0>(moves.back());
+					y0 = std::get<1>(moves.back());
+					minCost = costs.back();
+				}
+			}
 
 	if(minCost == 127)
 	{
