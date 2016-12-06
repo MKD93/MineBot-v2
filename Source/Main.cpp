@@ -6,6 +6,8 @@
 	or copy at http://opensource.org/licenses/MIT)
 **/
 
+#define MINEBOT_ENABLE_CHEATING 0
+
 #include "Grid.hpp"
 #include "Instance.hpp"
 #include "Process.hpp"
@@ -21,16 +23,22 @@ int main()
 
 	while(instances.updateInstances())
 	{
-		if(!instances.solveInstances())
-			return -2;
-
-		//if(!instances.cheatInstances())
-			//return -2;
+		#if MINEBOT_ENABLE_CHEATING == 0
+			if(!instances.solveInstances())
+				return -2;
+		#else
+			if(!instances.cheatInstances())
+				return -2;
+		#endif
 
 		else if(!instances.loadInstances())
 			return -3;
 
-		Sleep(69);
+		#if MINEBOT_ENABLE_CHEATING == 0
+			Sleep(69);
+		#else
+			Sleep(1000);
+		#endif
 	}
 
 	return 0;
