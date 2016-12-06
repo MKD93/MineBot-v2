@@ -196,23 +196,104 @@ bool Grid::solveDoubles()
 }
 
 /*
+	Calculates best move from probabilities for each tile being safe.
+*/
+bool Grid::computeCosts(uint32_t &x0, uint32_t &y0) const
+{
+	std::vector<std::pair<int8_t, int8_t>> moves;
+	std::vector<int8_t> costs;
+	int8_t minCost = 127;
+
+	for(int8_t y = 0; y < static_cast<int8_t>(Height); ++y)
+		for(int8_t x = 0; x < static_cast<int8_t>(Width); ++x)
+			if(Solve[x][y] == 12)
+			{
+				moves.push_back(std::pair<int8_t, int8_t>(x, y));
+				costs.push_back(127);
+
+				for(int8_t j = -1; j <= 1; ++j)
+					for(int8_t i = -1; i <= 1; ++i)
+						if((getKnown(x + i, y + j) >= 1) && (getKnown(x + i, y + j) <= 8))
+						{
+							if(costs[costs.size() - 1] == 127)
+								costs[costs.size() - 1] = 0;
+
+							costs[costs.size() - 1] += getKnown(x + i, y + j);
+
+							for(int8_t v = -1; v <= 1; ++v)
+								for(int8_t u = -1; u <= 1; ++u)
+									if((u != 0) && (v != 0) && (getKnown(x + i + u, y + j + v) >= 1) && (getKnown(x + i + u, y + j + v) <= 8))
+										costs[costs.size() - 1] -= getKnown(x + i + u, y + j + v);
+						}
+			}
+
+	for(uint32_t i = 0; i < costs.size(); ++i)
+		if(costs[i] < minCost)
+		{
+			x0 = std::get<0>(moves[i]);
+			y0 = std::get<1>(moves[i]);
+			minCost = costs[i];
+		}
+
+	return (minCost != 127);
+}
+
+/*
 	Calculates a random move that is always on an unknown tile.
 */
 void Grid::getRandomMove(uint32_t &x0, uint32_t &y0) const
 {
-	std::vector<std::pair<uint8_t, uint8_t>> moves;
-	uint32_t index = 0;
+	std::vector<std::pair<int8_t, int8_t>> moves;
+	std::vector<int8_t> costs;
+	int8_t minCost = 127;
 
-	for(uint8_t y = 0; y < Height; ++y)
-		for(uint8_t x = 0; x < Width; ++x)
+	for(int8_t y = 0; y < static_cast<int8_t>(Height); ++y)
+		for(int8_t x = 0; x < static_cast<int8_t>(Width); ++x)
 			if((Known[x][y] == 9) && (Solve[x][y] != 10))
-				moves.push_back(std::pair<uint8_t, uint8_t>(x, y));
+			{
+				moves.push_back(std::pair<int8_t, int8_t>(x, y));
+				costs.push_back(127);
 
-	if(!moves.empty())
+				for(int8_t j = -1; j <= 1; ++j)
+					for(int8_t i = -1; i <= 1; ++i)
+						if((getKnown(x + i, y + j) >= 1) && (getKnown(x + i, y + j) <= 8))
+						{
+							if(costs[costs.size() - 1] == 127)
+								costs[costs.size() - 1] = 0;
+
+							costs[costs.size() - 1] += getKnown(x + i, y + j);
+
+							for(int8_t v = -1; v <= 1; ++v)
+								for(int8_t u = -1; u <= 1; ++u)
+									if((u != 0) && (v != 0) && (getKnown(x + i + u, y + j + v) >= 1) && (getKnown(x + i + u, y + j + v) <= 8))
+										costs[costs.size() - 1] -= getKnown(x + i + u, y + j + v);
+						}
+			}
+
+	for(uint32_t i = 0; i < costs.size(); ++i)
+		if(costs[i] < minCost)
+		{
+			x0 = std::get<0>(moves[i]);
+			y0 = std::get<1>(moves[i]);
+			minCost = costs[i];
+		}
+
+	if(minCost == 127)
 	{
-		index = getRandom(0, moves.size() - 1);
-		x0 = std::get<0>(moves[index]);
-		y0 = std::get<1>(moves[index]);
+		uint32_t index = 0;
+		moves.clear();
+
+		for(uint8_t y = 0; y < Height; ++y)
+			for(uint8_t x = 0; x < Width; ++x)
+				if((Known[x][y] == 9) && (Solve[x][y] != 10))
+					moves.push_back(std::pair<uint8_t, uint8_t>(x, y));
+
+		if(!moves.empty())
+		{
+			index = getRandom(0, moves.size() - 1);
+			x0 = std::get<0>(moves[index]);
+			y0 = std::get<1>(moves[index]);
+		}
 	}
 }
 
@@ -230,21 +311,9 @@ void Grid::getBestMove(uint32_t &x0, uint32_t &y0)
 	while(solveSingles() || solveDoubles())
 		changed = true;
 
-	if(changed)
-	{
-		for(uint8_t y = 0; y < Height; ++y)
-			for(uint8_t x = 0; x < Width; ++x)
-				if(Solve[x][y] == 12)
-				{
-					x0 = x;
-					y0 = y;
+	if(changed && !computeCosts(x0, y0))
+		getRandomMove(x0, y0);
 
-					return;
-				}
-
-		changed = false;
-	}
-
-	if(!changed)
+	else if(!changed)
 		getRandomMove(x0, y0);
 }

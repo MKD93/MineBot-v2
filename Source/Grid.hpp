@@ -48,6 +48,9 @@ class Grid
 		//Solves two layer of neighbors analytically.
 		bool solveDoubles();
 
+		//Calculates best move from probabilities for each tile being safe.
+		bool computeCosts(uint32_t&, uint32_t&) const;
+
 		//Calculates a random move that is always on an unknown tile.
 		void getRandomMove(uint32_t&, uint32_t&) const;
 
