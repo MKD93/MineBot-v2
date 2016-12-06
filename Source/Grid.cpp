@@ -8,13 +8,16 @@
 
 #include "Grid.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <random>
 #include <utility>
 
-static uint8_t getRandom(const uint8_t min, const uint8_t max)
+static uint32_t getRandom(const uint32_t min, const uint32_t max)
 {
-	static std::mt19937 generator(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+	static uint32_t seed = static_cast<uint32_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+	static std::mt19937 generator(seed);
+
 	generator.discard(1);
 	return std::uniform_int_distribution<uint32_t>(min, max)(generator);
 }
@@ -39,7 +42,7 @@ Grid& Grid::operator=(const Grid &copy) { Cheat = copy.Cheat; Known = copy.Known
 */
 bool Grid::isWithinGrid(const int8_t x, const int8_t y) const
 {
-	return ((x >= 0) && (x < Width) && (y >= 0) && (y < Height));
+	return ((x >= 0) && (x < static_cast<int8_t>(Width)) && (y >= 0) && (y < static_cast<int8_t>(Height)));
 }
 
 /*
@@ -90,8 +93,8 @@ bool Grid::solveSingles()
 	bool changed = false;
 	uint8_t tile = 9, flagged = 0, unopened = 0;
 
-	for(int8_t y = 0; y < Height; ++y)
-		for(int8_t x = 0; x < Width; ++x)
+	for(int8_t y = 0; y < static_cast<int8_t>(Height); ++y)
+		for(int8_t x = 0; x < static_cast<int8_t>(Width); ++x)
 		{
 			tile = getKnown(x, y);
 
@@ -133,8 +136,8 @@ bool Grid::solveDoubles()
 	bool changed = false, jump = false;
 	uint8_t tile = 9, neighborTile = 9;
 
-	for(int8_t y = 0; y < Height; ++y)
-		for(int8_t x = 0; x < Width; ++x)
+	for(int8_t y = 0; y < static_cast<int8_t>(Height); ++y)
+		for(int8_t x = 0; x < static_cast<int8_t>(Width); ++x)
 		{
 			tile = getKnown(x, y);
 
@@ -165,6 +168,7 @@ bool Grid::solveDoubles()
 						break;
 
 					else if(tile == neighborTile)
+					{
 						for(int8_t v = -1; v <= 1; ++v)
 							for(int8_t u = -1; u <= 1; ++u)
 								if((getKnown(x + i + u, y + j + v) == 9) && !isNeighboring(x + i + u, y + j + v, x, y))
@@ -172,8 +176,10 @@ bool Grid::solveDoubles()
 									setKnown(x + i + u, y + j + v, 12);
 									changed = true;
 								}
+					}
 
 					else if((neighborTile - tile) == (countNeighbors(x + i, y + j, 9) - countNeighbors(x, y, 9)))
+					{
 						for(int8_t v = -1; v <= 1; ++v)
 							for(int8_t u = -1; u <= 1; ++u)
 								if((getKnown(x + i + u, y + j + v) == 9) && !isNeighboring(x + i + u, y + j + v, x, y))
@@ -181,6 +187,7 @@ bool Grid::solveDoubles()
 									setKnown(x + i + u, y + j + v, 10);
 									changed = true;
 								}
+					}
 				}
 			}
 		}
@@ -191,10 +198,10 @@ bool Grid::solveDoubles()
 /*
 	Calculates a random move that is always on an unknown tile.
 */
-void Grid::getRandomMove(uint32_t &x, uint32_t &y) const
+void Grid::getRandomMove(uint32_t &x0, uint32_t &y0) const
 {
 	std::vector<std::pair<uint8_t, uint8_t>> moves;
-	uint8_t index = 0;
+	uint32_t index = 0;
 
 	for(uint8_t y = 0; y < Height; ++y)
 		for(uint8_t x = 0; x < Width; ++x)
@@ -204,8 +211,8 @@ void Grid::getRandomMove(uint32_t &x, uint32_t &y) const
 	if(!moves.empty())
 	{
 		index = getRandom(0, moves.size() - 1);
-		x = std::get<0>(moves[index]);
-		y = std::get<1>(moves[index]);
+		x0 = std::get<0>(moves[index]);
+		y0 = std::get<1>(moves[index]);
 	}
 }
 

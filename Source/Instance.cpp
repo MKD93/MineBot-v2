@@ -15,7 +15,7 @@ BOOL CALLBACK Instance::EnumWindowsProc(HWND handle, LPARAM lparam)
 	DWORD processID;
     GetWindowThreadProcessId(handle, &processID);
 
-    if(processID == lparam)
+    if(processID == static_cast<DWORD>(lparam))
     {
     	IdHandle = handle;
         return FALSE;
@@ -44,7 +44,7 @@ bool Instance::updateGrid()
 
 	HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, Id);
 
-	if(processHandle > 0)
+	if(processHandle != nullptr)
 	{
 		if(ReadProcessMemory(processHandle, reinterpret_cast<LPCVOID>(0x01000000), reinterpret_cast<LPVOID>(memoryBuffer), 1 << 16, nullptr))
 		{

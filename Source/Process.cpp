@@ -34,7 +34,7 @@ bool Process::loadInstances()
 	{
 		processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processList[index]);
 
-		if(processHandle > 0)
+		if(processHandle != nullptr)
 		{
 			if(EnumProcessModules(processHandle, &moduleHandle, sizeof(moduleHandle), &moduleHandleSize))
 			{
